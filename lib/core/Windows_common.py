@@ -1,6 +1,8 @@
 from Windows_option import *
 import os, sys, json, re, time, logging
 from imp import reload
+import datetime, win32com.client
+import subprocess
 
 if sys.version_info < (3, 0):
     reload(sys)
@@ -15,25 +17,46 @@ lan_ip = r'(127\.0\.0\.1)|(localhost)|(10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(172\.((1[
 malware_infos = []
 
 
+# 更改Windows Powershell执行策略
+def get_execution_policy():
+    command = "powershell Get-ExecutionPolicy"
+    result = subprocess.check_output(command, shell=True)
+    # 将输出转换为字符串并去除末尾的换行符
+    policy = result.decode("utf-8").rstrip()
+    set_value('Get-ExecutionPolicy', policy)
+
+
+# 当字典中存在执行策略为
+def set_execution_policy():
+    ever_policy = get_value('Get-ExecutionPolicy')
+    if (get_value('SYS_PATH')):
+        command = "powershell Set-ExecutionPolicy" + ever_policy
+        result = subprocess.check_output(command, shell=True)
+        current_policy = result.decode("utf-8").rstrip()
+        print("执行策略修改为初值：", current_policy)
+    else:
+        command = "powershell Set-ExecutionPolicy undefined"
+        result = subprocess.check_output(command, shell=True)
+        current_policy = result.decode("utf-8").rstrip()
+        print("执行策略修改为：", current_policy)
+
+
 # 写定时任务信息
 def cron_write():
     SYS_PATH = get_value('SYS_PATH')
-    import datetime
-    import win32com.client
-    import os
 
     scheduler = win32com.client.Dispatch('Schedule.Service')  # 创建Schedule.Service COM组件的实例，用于管理计划任务
     scheduler.Connect()  # 连接到计划任务服务
     root_folder = scheduler.GetFolder('\\')  # 获取计划任务的根文件夹
     task_def = scheduler.NewTask(0)
 
-    # Create trigger
+    # 创建trigger
     start_time = datetime.datetime.now() + datetime.timedelta(days=1)  # 获取当前时间，加上5分钟作为计划任务的开始时间
     TASK_TRIGGER_TIME = 1  # 设置任务触发器类型为时间触发器
     trigger = task_def.Triggers.Create(TASK_TRIGGER_TIME)  # 创建任务触发器
     trigger.StartBoundary = start_time.isoformat()  # 设置任务触发器的开始时间
 
-    # Create action
+    # 创建计划任务动作
     TASK_ACTION_EXEC = 0  # 任务动作类型为执行命令
     action = task_def.Actions.Create(TASK_ACTION_EXEC)
     action.ID = 'CSSCAN'  # 给任务动作命名
@@ -41,13 +64,11 @@ def cron_write():
 
     action.Arguments = SYS_PATH + '\Scan.py'  # 指定要执行的命令参数
 
-    # Set parameters
+    # 设置计划任务参数
     task_def.RegistrationInfo.Description = 'CSSCAN'
     task_def.Settings.Enabled = True
     task_def.Settings.StopIfGoingOnBatteries = False
 
-    # Register task
-    # If task already exists, it will be updated
     TASK_CREATE_OR_UPDATE = 6  # 设置任务注册类型为创建或更新任务
     TASK_LOGON_NONE = 0  # 设置任务登录类型为无登录
     root_folder.RegisterTaskDefinition(
@@ -58,6 +79,7 @@ def cron_write():
         '',  # No password
         TASK_LOGON_NONE)  # 将计划任务定义注册到计划任务服务中。如果任务已存在，则更新任务
     return True
+
 
 # 创建日志文件
 def mkfile():
@@ -77,6 +99,7 @@ def mkfile():
         f.truncate()
         f.close()
 
+
 # 获取配置文件的恶意域名等信息
 def get_malware_info(path):
     try:
@@ -91,6 +114,7 @@ def get_malware_info(path):
                             malware_infos.append(malware)
     except:
         return
+
 
 # 追加文件写入
 def file_write(content):

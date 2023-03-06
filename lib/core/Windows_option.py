@@ -8,7 +8,6 @@ from lib.plugins.Host_Info import *
 
 def windows_main(path):
     parser = optparse.OptionParser()
-    parser.add_option("--version", dest="version", default=False, action='store_true', help=u"当前程序版本")
 
     group = optparse.OptionGroup(parser, "Mode", "GScan running mode options")
     group.add_option("--overseas", dest="overseas", default=False, action='store_true',
@@ -40,6 +39,10 @@ def windows_main(path):
 
     # 初始化全局模块
     init()
+    # 获取当前ExecutionPolicy执行策略
+    get_execution_policy()
+    # 初始化ExecutionPolicy执行策略为undefined以便执行脚本
+    set_execution_policy()
     # 设置调试模式
     set_value('DEBUG', True if options.debug else False)
     # 设置国内ip模式
@@ -52,7 +55,8 @@ def windows_main(path):
     set_value('diffect', True if options.diffect else False)
     # 设置扫描模式为完全扫描
     set_value('SCAN_TYPE', 2 if options.full_scan else 1)
-
+    # 设置Windows的Execution
+    set_execution_policy()
     # 系统执行目录
     set_value('SYS_PATH', path)
     # 扫描日志目录
@@ -68,11 +72,9 @@ def windows_main(path):
     elif options.job:
         print(u'\033[1;32m开始添加定时任务，建议添加任务之前先进行一次入侵检测扫描。\033[0m\n')
         if cron_write('0' if not options.hour else options.hour):
-            print(u'任务添加完毕，可使用crontab -l命令查看任务')
+            print(u'任务添加完毕，可去计算机管理 - 计划任务 查看任务')
         else:
             print(u'\033[1;31m添加失败，建议手工添加任务,参考命令schtasks /Create [/S system [/U username [/P [password]]]][/RU username [/RP [password]] /SC schedule [/MO modifier] [/D day][/M months] [/I idletime] /TN taskname /TR taskrun [/ST starttime][/RI interval] [ {/ET endtime | /DU duration} [/K] [/XML xmlfile] [/V1]] [/SD startdate] [/ED enddate] [/IT] [/Z] [/F]\033[0m\n')
-    elif options.version:
-        return
     else:
         # 创建日志文件
         mkfile()
@@ -106,7 +108,8 @@ def windows_main(path):
 
         # 路径追溯
         #Data_Aggregation().run()
-
+        #修改当前ExecutionPolicy执行策略为执行脚本前状态
+        set_execution_policy()
         # 输出报告
         print(u'-' * 30)
         print(u'\033[1;32m扫描完毕，扫描结果已记入到 %s 文件中，请及时查看\033[0m' % get_value('LOG_PATH'))
