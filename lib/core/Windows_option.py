@@ -40,7 +40,7 @@ def windows_main(path):
     # 初始化全局模块
     init()
     # 获取当前ExecutionPolicy执行策略
-    get_execution_policy()
+    # get_execution_policy()
     # 初始化ExecutionPolicy执行策略为undefined以便执行脚本
     set_execution_policy()
     # 设置调试模式

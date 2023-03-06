@@ -1,6 +1,7 @@
 from Windows_option import *
 import os, sys, json, re, time, logging
 from imp import reload
+from lib.core.globalvar import *
 import datetime, win32com.client
 import subprocess
 
@@ -18,27 +19,33 @@ malware_infos = []
 
 
 # 更改Windows Powershell执行策略
-def get_execution_policy():
-    command = "powershell Get-ExecutionPolicy"
-    result = subprocess.check_output(command, shell=True)
-    # 将输出转换为字符串并去除末尾的换行符
-    policy = result.decode("utf-8").rstrip()
-    set_value('Get-ExecutionPolicy', policy)
+# def get_execution_policy():
+# command = "powershell Get-ExecutionPolicy"
+# result = subprocess.check_output(command, shell=True)
+# 将输出转换为字符串并去除末尾的换行符
+# policy = result.decode("utf-8").rstrip()
+# set_value('Get-ExecutionPolicy', policy)
 
 
 # 当字典中存在执行策略为
 def set_execution_policy():
-    ever_policy = get_value('Get-ExecutionPolicy')
-    if (get_value('SYS_PATH')):
-        command = "powershell Set-ExecutionPolicy" + ever_policy
+    command = "powershell Get-ExecutionPolicy"
+    result = subprocess.check_output(command, shell=True)
+    # 将输出转换为字符串并去除末尾的换行符
+    policy = result.decode("utf-8").rstrip()
+    if (get_value('SYS_PATH') == None):
+        command = "powershell Set-ExecutionPolicy -ExecutionPolicy Undefined -Scope LocalMachine"
+        subprocess.run(command, shell=True)
+        command = "powershell Get-ExecutionPolicy -Scope LocalMachine"
         result = subprocess.check_output(command, shell=True)
-        current_policy = result.decode("utf-8").rstrip()
-        print("执行策略修改为初值：", current_policy)
+        new_policy = result.decode("utf-8").rstrip()
+        print("用户域执行策略修改为：%s" % new_policy)
     else:
-        command = "powershell Set-ExecutionPolicy undefined"
-        result = subprocess.check_output(command, shell=True)
-        current_policy = result.decode("utf-8").rstrip()
-        print("执行策略修改为：", current_policy)
+        ever_policy = get_value('Get-ExecutionPolicy')
+        command = "powershell Set-ExecutionPolicy -ExecutionPolicy " + ever_policy + " -Scope LocalMachine"
+        subprocess.run(command,shell=True)
+        print("用户域执行策略修改为初值：%s" % ever_policy)
+    set_value('Get-ExecutionPolicy', policy)
 
 
 # 写定时任务信息
